@@ -57,6 +57,21 @@
             z-index: 5;
         }
 
+        #debug {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            font-size: 12px;
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 5;
+        }
+
         #startButton {
             position: absolute;
             top: 50%;
@@ -80,9 +95,10 @@
     </style>
 </head>
 <body>
-    <div id="info">Tilt your device to guide the marble!</div>
+    <div id="info">Tilt device or touch & drag to guide the marble!</div>
     <div id="message">GG</div>
-    <button id="startButton">Enable Motion Controls</button>
+    <div id="debug">Waiting for sensor data...</div>
+    <button id="startButton">Start Game</button>
     <canvas id="gameCanvas"></canvas>
     <script src="game.js"></script>
 </body>

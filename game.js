@@ -3,6 +3,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const messageEl = document.getElementById('message');
 const startButton = document.getElementById('startButton');
+const debugEl = document.getElementById('debug');
 
 // Set canvas size to fit mobile screen
 function resizeCanvas() {
@@ -16,7 +17,7 @@ window.addEventListener('resize', resizeCanvas);
 const MAZE_SIZE = 12; // 12x12 maze
 const MARBLE_RADIUS = 12;
 const FRICTION = 0.95;
-const GRAVITY_MULTIPLIER = 0.5;
+const GRAVITY_MULTIPLIER = 1.2; // Increased for better sensitivity
 
 // Game state
 let maze = [];
@@ -32,6 +33,10 @@ let goal = { x: 0, y: 0 };
 let gamma = 0; // Device tilt left/right
 let beta = 0;  // Device tilt forward/backward
 let permissionGranted = false;
+let lastOrientationUpdate = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+let useTouch = false;
 
 // Maze generation using recursive backtracking
 class MazeGenerator {
@@ -116,12 +121,66 @@ function initGame() {
 function handleOrientation(event) {
     if (!permissionGranted) return;
 
-    beta = event.beta;   // -180 to 180 (forward/backward tilt)
-    gamma = event.gamma; // -90 to 90 (left/right tilt)
+    lastOrientationUpdate = Date.now();
+
+    // Get raw values
+    let rawBeta = event.beta;   // -180 to 180 (forward/backward tilt)
+    let rawGamma = event.gamma; // -90 to 90 (left/right tilt)
+
+    // Handle null values (some Android devices)
+    if (rawBeta === null || rawGamma === null) {
+        debugEl.textContent = 'Sensor data unavailable. Try touch controls.';
+        return;
+    }
+
+    // Normalize for different device orientations
+    // Some Android devices have different coordinate systems
+    beta = rawBeta;
+    gamma = rawGamma;
 
     // Clamp values
     beta = Math.max(-45, Math.min(45, beta));
     gamma = Math.max(-45, Math.min(45, gamma));
+
+    // Update debug display
+    debugEl.textContent = `Tilt: X=${gamma.toFixed(1)}° Y=${beta.toFixed(1)}° | Touch: ${useTouch ? 'ON' : 'OFF'}`;
+}
+
+// Touch controls as fallback
+function setupTouchControls() {
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        useTouch = true;
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!useTouch) return;
+
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+
+        // Simulate tilt with touch
+        gamma = (deltaX / canvas.width) * 90;
+        beta = (deltaY / canvas.height) * 90;
+
+        gamma = Math.max(-45, Math.min(45, gamma));
+        beta = Math.max(-45, Math.min(45, beta));
+
+        debugEl.textContent = `Touch Mode: X=${gamma.toFixed(1)}° Y=${beta.toFixed(1)}°`;
+    });
+
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        // Gradually return to neutral
+        setTimeout(() => {
+            useTouch = false;
+        }, 100);
+    });
 }
 
 // Request permission for iOS 13+
@@ -133,19 +192,36 @@ async function requestPermission() {
             if (permission === 'granted') {
                 permissionGranted = true;
                 window.addEventListener('deviceorientation', handleOrientation);
+                setupTouchControls();
                 startButton.style.display = 'none';
+                debugEl.textContent = 'Tilt device or touch screen to move!';
                 initGame();
                 gameLoop();
             }
         } catch (error) {
             console.error('Permission denied:', error);
-            alert('Motion permission denied. Please enable it in settings.');
+            alert('Motion permission denied. Using touch controls instead.');
+            permissionGranted = true;
+            setupTouchControls();
+            startButton.style.display = 'none';
+            debugEl.textContent = 'Touch and drag to move marble';
+            initGame();
+            gameLoop();
         }
     } else {
         // Non-iOS or older iOS
         permissionGranted = true;
         window.addEventListener('deviceorientation', handleOrientation);
+        setupTouchControls();
         startButton.style.display = 'none';
+
+        // Check if orientation is actually working
+        setTimeout(() => {
+            if (Date.now() - lastOrientationUpdate > 1000) {
+                debugEl.textContent = 'Orientation not working. Use touch controls!';
+            }
+        }, 2000);
+
         initGame();
         gameLoop();
     }
