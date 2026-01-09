@@ -14,8 +14,8 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // Game constants
-const MAZE_SIZE = 12; // 12x12 maze
-const MARBLE_RADIUS = 12;
+const MAZE_SIZE = 6; // 6x6 maze for easier, quicker gameplay
+const MARBLE_RADIUS = 18;
 const FRICTION = 0.95;
 const GRAVITY_MULTIPLIER = 1.2; // Increased for better sensitivity
 
@@ -333,8 +333,11 @@ function drawMaze() {
     ctx.save();
     ctx.translate(offsetX, offsetY);
 
-    ctx.strokeStyle = '#34495e';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+    ctx.shadowBlur = 10;
 
     for (let y = 0; y < MAZE_SIZE; y++) {
         for (let x = 0; x < MAZE_SIZE; x++) {
@@ -376,17 +379,27 @@ function drawGoal() {
     ctx.save();
     ctx.translate(offsetX, offsetY);
 
-    // Animated goal with pulsing effect
-    const pulseSize = Math.sin(Date.now() / 300) * 3 + cellSize * 0.3;
+    // Minimalist pulsing goal
+    const pulseSize = Math.sin(Date.now() / 400) * 8 + cellSize * 0.35;
+    const opacity = Math.sin(Date.now() / 400) * 0.3 + 0.7;
 
+    // Outer glow
     const gradient = ctx.createRadialGradient(goal.x, goal.y, 0, goal.x, goal.y, pulseSize);
-    gradient.addColorStop(0, '#f39c12');
-    gradient.addColorStop(0.5, '#e74c3c');
+    gradient.addColorStop(0, `rgba(0, 255, 136, ${opacity})`);
+    gradient.addColorStop(0.6, 'rgba(0, 255, 136, 0.2)');
     gradient.addColorStop(1, 'transparent');
 
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(goal.x, goal.y, pulseSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Solid center
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = 'rgba(0, 255, 136, 0.8)';
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(goal.x, goal.y, cellSize * 0.2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -400,31 +413,34 @@ function drawMarble() {
     ctx.save();
     ctx.translate(offsetX, offsetY);
 
-    // Marble with gradient for 3D effect
+    // Modern flat marble with subtle gradient
     const gradient = ctx.createRadialGradient(
-        marble.x - marble.radius * 0.3,
-        marble.y - marble.radius * 0.3,
-        marble.radius * 0.1,
+        marble.x - marble.radius * 0.2,
+        marble.y - marble.radius * 0.2,
+        0,
         marble.x,
         marble.y,
         marble.radius
     );
-    gradient.addColorStop(0, '#ecf0f1');
-    gradient.addColorStop(0.4, '#3498db');
-    gradient.addColorStop(1, '#2c3e50');
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.5, '#e0e0e0');
+    gradient.addColorStop(1, '#c0c0c0');
 
     ctx.fillStyle = gradient;
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+    ctx.shadowBlur = 15;
     ctx.beginPath();
     ctx.arc(marble.x, marble.y, marble.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Marble shine
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    // Subtle highlight
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.beginPath();
     ctx.arc(
-        marble.x - marble.radius * 0.3,
-        marble.y - marble.radius * 0.3,
-        marble.radius * 0.4,
+        marble.x - marble.radius * 0.25,
+        marble.y - marble.radius * 0.25,
+        marble.radius * 0.3,
         0,
         Math.PI * 2
     );
@@ -436,8 +452,8 @@ function drawMarble() {
 // Main game loop
 let lastWin = 0;
 function gameLoop() {
-    // Clear canvas
-    ctx.fillStyle = '#2c3e50';
+    // Clear canvas with dark background
+    ctx.fillStyle = '#0a0a0a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Update and draw
